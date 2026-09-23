@@ -1,0 +1,29 @@
+name: r-env
+channels:
+  - conda-forge
+  - defaults
+  - bioconda
+
+dependencies:
+
+  # R
+  - r-base=4.5.2
+  # - r-seuratdisk has to be installed from within R
+  - r-seurat
+
+  # Core R packages requested
+  - r-ggplot2
+  - r-ggrepel
+  - r-reshape
+  - r-ggridges
+  - r-amap
+
+  # Bioconductor
+  - bioconductor-rhdf5
+  - bioconductor-deseq2
+  - bioconductor-apeglm
+  - bioconductor-limma
+
+  # Helpers to install any missing CRAN packages from inside R
+  - r-remotes
+  - r-devtools

@@ -1,0 +1,347 @@
+---
+title: "workflow-comparison"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "/Volumes/robin_work/cosmx_gray")
+```
+
+```{r libraries and scripts}
+library(Seurat)
+library(schard)
+#library(SpatialCellChat)
+library(CellChat)
+library(patchwork)
+options(stringsAsFactors = FALSE)
+source("code/8_lr_analysis/cellchat-functions.R")
+```
+
+Parallel processing helps speed up LR identification
+
+```{r}
+# setting seed
+SEED_VALUE <- 42
+set.seed(SEED_VALUE)
+
+# Set up parallel processing
+future::plan("multisession", workers = 4) 
+options(future.globals.maxSize = 4 * 1024^3)
+```
+
+```{r}
+# Paths
+IN_DIR <- file.path(
+  "results", "comb", "lr_manual-niches", "1"
+)
+
+OUT_DIR <- file.path(
+  "results", "comb", "lr_manual-niches", "1", "comparison"
+)
+
+dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
+```
+
+```{r define input CellChat objects}
+
+# Adjust these names if needed
+obj_paths <- c(
+  CTRL = file.path(IN_DIR, "CTRL.cellchat.rds"),
+  CF   = file.path(IN_DIR, "CF.cellchat.rds")
+)
+```
+
+```{r load CellChat objects}
+
+message("Loading CellChat objects...")
+object_list <- lapply(obj_paths, readRDS)
+
+# Ensure names are preserved
+names(object_list) <- names(obj_paths)
+
+## Need to reprocess the object and include this in the pipeline
+for (item in names(object_list)) {
+  # calculate centrality scores if not already done
+  object_list[[item]] <- netAnalysis_computeCentrality(
+    object_list[[item]],
+    slot.name = "netP"
+  )
+}
+
+```
+
+```{r merge CellChat objects}
+
+message("Merging CellChat objects...")
+cellchat <- mergeCellChat(
+  object.list = object_list,
+  add.names = names(object_list)
+)
+
+saveRDS(
+  cellchat,
+  file = file.path(OUT_DIR, "cellchat_merged.rds")
+)
+
+```
+
+Number of interactions
+
+```{r}
+
+compareInteractions(
+  cellchat, 
+  show.legend = FALSE, 
+  group = c(1,2),
+  measure = "count"
+)
+
+```
+
+Strength of interactions
+
+```{r}
+compareInteractions(
+  cellchat,
+  show.legend = FALSE,
+  group = c(1,2),
+  measure = "weight"
+)
+```
+
+# Differential interaction networks
+
+-   Red = increased in second dataset in group comparison
+-   Blue = decreased in second dataset in group comparison
+
+Count
+
+```{r}
+netVisual_diffInteraction(
+  cellchat,
+  weight.scale = TRUE,
+  measure = "count",
+  label.edge = FALSE
+)
+```
+
+Strength
+
+```{r}
+netVisual_diffInteraction(
+  cellchat,
+  weight.scale = TRUE,
+  measure = "weight",
+  label.edge = FALSE
+)
+```
+
+# Heatmaps of differential interaction
+
+Number of interactions
+
+```{r}
+netVisual_heatmap(cellchat, measure = "count")
+
+```
+
+Strength of interactions
+
+```{r}
+netVisual_heatmap(cellchat, measure = "weight")
+```
+
+# Compare the number of interactions and interaction strength among different cell populations
+
+(C) Circle plot showing the number of interactions or interaction strength among different cell populations across multiple datasets
+
+```{r}
+
+weight.max <- getMaxWeight(object_list, attribute = c("idents","count"))
+
+par(mfrow = c(1,2), xpd=TRUE)
+
+for (i in 1:length(object_list)) {
+  netVisual_circle(
+    net = object_list[[i]]@net$count,
+    weight.scale = T,
+    label.edge= F, 
+    edge.weight.max = weight.max[2], 
+    edge.width.max = 12, 
+    title.name = paste0("Number of interactions - ", names(object_list)[i]))
+}
+```
+
+# (D) Circle plot showing the differential number of interactions or interaction strength among coarse cell types
+
+To simplify the complicated network and gain insights into the cell-cell communication at the cell type level, CellChat aggregates the cell-cell communication based on the defined cell groups. Here we categorize the cell populations into three cell types, and then re-merge the list of CellChat object.
+
+```{r}
+
+group.cellType <- c(
+  "MYELOID",      # alveolar_macrophages
+  "OTHER",        # ambiguous
+  "EPITHELIAL",   # AT1
+  "EPITHELIAL",   # AT2
+  "LYMPHOID",     # B
+  "EPITHELIAL",   # basal
+  "EPITHELIAL",   # ciliated
+  "ENDOTHELIAL",  # endothelial
+  "STROMAL",      # fibroblasts
+  "MYELOID",      # macrophages
+  "MYELOID",      # mast
+  "MYELOID",      # neutrophils
+  "LYMPHOID",     # plasma
+  "EPITHELIAL",   # secretory
+  "EPITHELIAL",   # secretory-ciliated
+  "STROMAL",      # smooth_muscle
+  "OTHER",        # sputum
+  "LYMPHOID"      # T
+)
+
+group.cellType <- factor(
+  group.cellType,
+  levels = c("EPITHELIAL", "MYELOID", "LYMPHOID", "ENDOTHELIAL", "STROMAL", "OTHER")
+)
+
+object_list_grouped <- lapply(object_list, function(x) {
+  mergeInteractions(x, group.cellType)
+})
+
+cellchat_grouped <- mergeCellChat(
+  object_list_grouped,
+  add.names = names(object_list_grouped)
+)
+
+
+```
+
+Comparison number of interactions
+
+```{r}
+
+weight.max <- getMaxWeight(
+  object_list_grouped,
+  slot.name = c("idents", "net", "net"),
+  attribute = c("idents", "count", "count.merged")
+)
+
+par(mfrow = c(1, length(object_list_grouped)), xpd = TRUE)
+
+for (i in seq_along(object_list_grouped)) {
+  netVisual_circle(
+    object_list_grouped[[i]]@net$count.merged,
+    weight.scale = TRUE,
+    label.edge = TRUE,
+    edge.weight.max = weight.max[3],
+    edge.width.max = 12,
+    title.name = paste0("Number of interactions - ", names(object_list_grouped)[i])
+  )
+}
+
+```
+
+DIfferential Interactions
+
+```{r}
+
+par(mfrow = c(1,2), xpd=TRUE)
+
+netVisual_diffInteraction(
+  cellchat_grouped, 
+  weight.scale = T, 
+  measure = "count.merged", 
+  label.edge = T
+)
+
+netVisual_diffInteraction(
+  cellchat_grouped, 
+  weight.scale = T, 
+  measure = "weight.merged", 
+  label.edge = T
+)
+
+```
+
+## **Compare the major sources and targets in a 2D space**
+
+Comparing the outgoing and incoming interaction strength in a 2D space allows ready identification of the cell populations with significant changes in sending or receiving signals between different datasets.
+
+Identify cell populations with significant changes in sending or receiving signals between different datasets by following option A, and the signaling changes of specific cell populations by following option B.
+
+### **(A) Identify cell populations with significant changes in sending or receiving signals**
+
+```{r}
+
+num.link <- sapply(object_list, function(x) {rowSums(x@net$count) + colSums(x@net$count)-diag(x@net$count)})
+
+# control the dot size in the different datasets
+weight.MinMax <- c(min(num.link), max(num.link)) 
+
+gg <- list()
+
+for (i in 1:length(object_list)) {
+  
+  gg[[i]] <- netAnalysis_signalingRole_scatter(
+    object = object_list[[i]],
+    title = names(object_list)[i],
+    weight.MinMax = weight.MinMax
+  )
+}
+
+patchwork::wrap_plots(plots = gg)
+```
+
+### **(B) Identify the signaling changes of specific cell populations**
+
+```{r}
+celltypes <- levels(cellchat@meta$ann_lvl_3)
+
+for (celltype in celltypes) {
+
+  # if fails next celltype
+  tryCatch({
+    gg <- netAnalysis_signalingChanges_scatter(
+      cellchat, 
+      idents.use = celltype
+    )
+    print(gg)
+  }, error = function(e) {
+    message("Failed for celltype: ", celltype)
+  })
+}
+```
+
+## **Identify signaling networks with larger (or less) difference as well as signaling groups based on their functional/structure similarity**
+
+CellChat performs joint manifold learning and classification of the inferred communication networks based on their functional and topological similarity across different conditions. NB: Such analysis is applicable to more than two datasets.
+
+By quantifying the similarity between the cellular communication networks of signaling pathways across conditions, this analysis highlights the potentially altered signaling pathways. CellChat adopts the concept of network rewiring from network biology and hypothesized that the difference between different communication networks may affect biological processes across conditions. UMAP is used for visualizing signaling relationship and interpreting our signaling outputs in an intuitive way without involving the classification of conditions.
+
+**Functional similarity**: High degree of functional similarity indicates major senders and receivers are similar, and it can be interpreted as the two signaling pathways or two ligand-receptor pairs exhibit similar and/or redundant roles. **NB**: Functional similarity analysis is not applicable to multiple datsets with different cell type composition.
+
+**Structural similarity**: A structural similarity was used to compare their signaling network structure, without considering the similarity of senders and receivers. **NB**: Structural similarity analysis is applicable to multiple datsets with the same cell type composition or the vastly different cell type composition.
+
+Here we can run the manifold and classification learning analysis based on the functional similarity because the two datasets have the the same cell type composition.
+
+### **Identify signaling groups based on their functional similarity**
+
+```{r}
+cellchat <- computeNetSimilarityPairwise(cellchat, type = "functional")
+cellchat <- netEmbedding(cellchat, type = "functional")
+cellchat <- netClustering(cellchat, type = "functional")
+# Visualization in 2D-space
+netVisual_embeddingPairwise(cellchat, type = "functional", label.size = 3.5)
+netVisual_embeddingPairwiseZoomIn(cellchat, type = "functional", nCol = 2)
+```
+
+### Identify signaling groups based on structure similarity
+
+```{r}
+cellchat <- computeNetSimilarityPairwise(cellchat, type = "structural")
+cellchat <- netEmbedding(cellchat, type = "structural")
+cellchat <- netClustering(cellchat, type = "structural")
+# Visualization in 2D-space
+netVisual_embeddingPairwise(cellchat, type = "structural", label.size = 3.5)
+netVisual_embeddingPairwiseZoomIn(cellchat, type = "structural", nCol = 2)
+```

@@ -1,0 +1,87 @@
+{
+    "T": [
+        "CD3D",
+        "CD3G",
+        "CD3E"
+    ],
+    "CD4+ T": [
+        "CD4",
+        "IL7R"
+    ],
+    "CD8+ T": [
+        "CD8A",
+        "CD8B"
+    ],
+    "NKT": [
+        "GNLY",
+        "CD247",
+        "PTGDR",
+        "SH2D1B"
+    ],
+    "B": [
+        "MS4A1",
+        "CD19",
+        "CD74",
+        "CD79A",
+        "IGHD"
+    ],
+    "PC": [
+        "IGKC",
+        "JCHAIN",
+        "IGLC1/2",
+        "IGLL5"
+    ],
+    "PC_IgG": [
+        "IGHG1/2"
+    ],
+    "PC_IgA": [
+        "IGHA1"
+    ],
+    "PC_IgM": [
+        "IGHM"
+    ],
+    "APC": [
+        "HLA-DRA",
+        "HLA-DRB"
+    ],
+    "neutrophils": [
+        "ITGAM",
+        "CEACAM8",
+        "CSF3R",
+        "ELANE",
+        "S100A8",
+        "S100A9"
+    ],
+    "mast": [
+        "TPSAB1/2",
+        "KIT",
+        "GATA2"
+    ],
+    "DC": [
+        "ITGAM",
+        "IRF8",
+        "CD83"
+    ],
+    "macrophages": [
+        "ITGAM",
+        "CD74",
+        "LYZ",
+        "CD68",
+        "ITGAX"
+    ],
+    "monocytes": [
+        "CD14",
+        "FCGR3A",
+        "CD86",
+        "CCR2",
+        "MRC1",
+        "APOE"
+    ],
+    "alveolar_macrophages": [
+        "MARCO",
+        "MRC1",
+        "PPARG",
+        "CD163",
+        "CD36"
+    ]
+}

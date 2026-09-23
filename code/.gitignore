@@ -1,0 +1,14 @@
+.DS_Store
+__pycache__/
+*.pyc
+.env
+.venv/
+*.log
+*.out
+# Nextflow scratch
+pipeline/work/
+work/
+.nextflow/
+.nextflow.log*
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/

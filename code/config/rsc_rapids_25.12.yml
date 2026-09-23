@@ -1,0 +1,25 @@
+name: rsc_25.12
+channels:
+ - rapidsai
+ - nvidia
+ - conda-forge
+ - bioconda
+dependencies:
+ - rapids=25.12
+ - python=3.13
+ - cuda-version=12.8
+ - cudnn
+ - cutensor
+ - cusparselt
+ - jupyterlab
+ - pip
+ - pip:
+    - decoupler
+    - omnipath
+    - gdown
+    - wget
+    - rapids-singlecell 
+    - scvi-tools # new
+    - plotnine # new
+
+# Note: squidpy give compatibilty issues, do a separate env for that

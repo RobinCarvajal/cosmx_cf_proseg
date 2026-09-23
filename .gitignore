@@ -1,0 +1,7 @@
+data/
+logs/
+results/
+slides_tx_files/
+.vscode/
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/

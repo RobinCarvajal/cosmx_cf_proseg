@@ -1,0 +1,13 @@
+name: py-spatial
+channels:
+ - conda-forge
+ - bioconda
+dependencies:
+ - python=3.13
+ - jupyterlab
+ - pip
+ - pip:
+    - scanpy
+    - squidpy
+    - scvi-tools
+    - plotnine

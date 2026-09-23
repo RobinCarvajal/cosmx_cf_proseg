@@ -1,0 +1,142 @@
+{
+    "basal": [
+        "KRT5",
+        "KRT14",
+        "KRT15",
+        "KRT17",
+        "IL33"
+    ],
+    "secretory": [
+        "SCGB1A1",
+        "SCGB3A1"
+    ],
+    "ciliated": [
+        "FOXJ1",
+        "TUBB4B",
+        "SAA1"
+    ],
+    "trSCs": [
+        "SCGB1A1",
+        "SCGB3A1",
+        "FOXJ1",
+        "TUBB4B",
+        "SAA1"
+    ],
+    "AT1": [
+        "RTKN2",
+        "COL4A3",
+        "FSTL3",
+        "AGER"
+    ],
+    "AT2": [
+        "NKX2-1",
+        "ETV5",
+        "NAPSA",
+        "LAMP3",
+        "CD36",
+        "LPCAT1",
+        "SFTPD"
+    ],
+    "hillock": [
+        "KRT13",
+        "KRT6A",
+        "DSG3",
+        "SERPINB2"
+    ],
+    "T": [
+        "CD3D",
+        "CD3G",
+        "CD3E",
+        "TRBC2",
+        "CD8A",
+        "CD8B"
+    ],
+    "B": [
+        "MS4A1",
+        "CD19",
+        "CD74",
+        "CD79A",
+        "IGHD",
+        "IGHM"
+    ],
+    "B_GERM": [
+        "MZB1",
+        "IGLL1",
+        "MKI67"
+    ],
+    "Plasma": [
+        "IGKC",
+        "JCHAIN",
+        "IGHG1/2",
+        "IGHA1"
+    ],
+    "APC": [
+        "HLA-DRA",
+        "HLA-DRB"
+    ],
+    "neutrophils": [
+        "ITGAM",
+        "CEACAM8",
+        "CSF3R",
+        "ELANE",
+        "S100A8",
+        "S100A9"
+    ],
+    "mast": [
+        "TPSAB1/2",
+        "KIT",
+        "GATA2"
+    ],
+    "DC": [
+        "ITGAM",
+        "IRF8",
+        "CD83"
+    ],
+    "macrophages": [
+        "ITGAM",
+        "CD74",
+        "LYZ",
+        "CD68",
+        "ITGAX"
+    ],
+    "monocytes": [
+        "CD14",
+        "FCGR3A",
+        "CD86",
+        "CCR2",
+        "MRC1",
+        "APOE"
+    ],
+    "alveolar_macrophages": [
+        "MARCO",
+        "MRC1",
+        "PPARG",
+        "CD163",
+        "CD36"
+    ],
+    "fibroblast": [
+        "PDGFRB",
+        "LUM",
+        "COL6A2",
+        "COL1A1",
+        "COL1A2"
+    ],
+    "smooth_muscle": [
+        "ACTA2",
+        "MYL9",
+        "RGS5",
+        "NOX4",
+        "TAGLN",
+        "CALD1"
+    ],
+    "EC": [
+        "PECAM1",
+        "CD93",
+        "VWF",
+        "EMCN",
+        "FLT1",
+        "ID3",
+        "MCAM",
+        "CLDN5"
+    ]
+}
