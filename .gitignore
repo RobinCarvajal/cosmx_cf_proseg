@@ -1,7 +1,33 @@
+# --- Project Specific ---
 data/
 logs/
 results/
 slides_tx_files/
+
+# --- IDEs and Editors ---
 .vscode/
+.idea/
+
+# --- Jupyter Notebooks ---
 .ipynb_checkpoints/
 **/.ipynb_checkpoints/
+
+# --- Python Specific ---
+__pycache__/
+**/__pycache__/
+*.py[co]
+*$py.class
+
+# --- Virtual Environments (Very important!) ---
+venv/
+.venv/
+env/
+
+# --- Distribution / packaging ---
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- OS Specific ---
+.DS_Store
