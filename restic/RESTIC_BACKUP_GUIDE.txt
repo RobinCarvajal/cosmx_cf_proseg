@@ -1,0 +1,307 @@
+RESTIC BACKUP GUIDE: MARS HPC TO AWS S3
+=======================================
+
+Purpose
+-------
+This guide backs up folders from the Mars HPC to an encrypted, compressed,
+deduplicated Restic repository in the existing AWS S3 bucket.
+
+Repository:
+  rclone:gray_s3:gray-lab-864138843198-eu-west-2-an/restic_backups
+
+Important safety rules
+----------------------
+1. Never put AWS credentials or the Restic password directly in this file,
+   scripts, Git, or shell history.
+2. Never share ~/.restic_env, the Restic password file, or rclone.conf.
+3. Keep a separate copy of the Restic password in a password manager. Without
+   it, the encrypted backup cannot be restored.
+4. Run large backups, checks and prune operations as Slurm jobs, not on login2.
+5. Before deleting a snapshot, confirm that replacement snapshots exist.
+6. Do not use --no-lock or remove a lock while another Restic process is active.
+7. Restore into a new staging directory, never directly over an active project.
+
+
+1. INSTALL RESTIC
+-----------------
+Create a dedicated Conda environment, or install it in the existing cli-tools
+environment.
+
+Dedicated environment:
+
+  conda create --name restic-env --channel conda-forge restic -y
+  conda activate restic-env
+
+Verify:
+
+  restic version
+  command -v rclone
+  rclone listremotes
+
+The configured rclone remotes should include:
+
+  gray_s3:
+
+
+2. RESTIC ENVIRONMENT FILE
+--------------------------
+Create ~/.restic_env with these contents:
+
+  # Restic repository stored in the existing AWS S3 bucket through rclone.
+  export RESTIC_REPOSITORY="rclone:gray_s3:gray-lab-864138843198-eu-west-2-an/restic_backups"
+
+  # File containing the Restic encryption password.
+  export RESTIC_PASSWORD_FILE="${HOME}/.config/restic/restic_backups.pass"
+
+  # The account-regional namespace bucket already exists. Do not ask rclone
+  # to check or create it.
+  export RCLONE_S3_NO_CHECK_BUCKET="true"
+
+  # Use a stable host label even when Slurm selects different compute nodes.
+  export RESTIC_HOST="mars"
+
+Protect the file:
+
+  chmod 600 "${HOME}/.restic_env"
+
+Load it in each new shell or batch job:
+
+  source "${HOME}/.restic_env"
+
+Check the selected repository without displaying secrets:
+
+  printf 'Repository: %s\n' "${RESTIC_REPOSITORY}"
+
+
+3. CREATE THE PASSWORD FILE
+---------------------------
+Run once, using a new strong password:
+
+  mkdir -p "${HOME}/.config/restic"
+  chmod 700 "${HOME}/.config/restic"
+
+  read -rsp "Enter a new Restic password: " RESTIC_SECRET
+  echo
+  umask 077
+  printf '%s\n' "${RESTIC_SECRET}" > \
+      "${HOME}/.config/restic/restic_backups.pass"
+  unset RESTIC_SECRET
+  chmod 600 "${HOME}/.config/restic/restic_backups.pass"
+
+Do not commit this password file to Git. Save the password separately in a
+password manager.
+
+
+4. INITIALIZE THE REPOSITORY
+----------------------------
+Initialize the S3 repository only once:
+
+  source "${HOME}/.restic_env"
+  restic init
+
+If Restic reports that the repository is already initialized, do not initialize
+it again. Confirm access with:
+
+  restic snapshots
+
+
+5. BACK UP THE COSMX FOLDERS SEPARATELY
+---------------------------------------
+Using separate commands and tags gives each folder its own snapshot history
+while retaining deduplication across the shared repository.
+
+Preview the original-data backup:
+
+  restic backup \
+      "/mnt/data/project0062/cosmx_cf_orig" \
+      --tag "cosmx_cf_orig" \
+      --dry-run \
+      --verbose
+
+Run the original-data backup:
+
+  restic backup \
+      "/mnt/data/project0062/cosmx_cf_orig" \
+      --tag "cosmx_cf_orig" \
+      --verbose
+
+Preview the ProSeg backup:
+
+  restic backup \
+      "/mnt/data/project0062/cosmx_cf_proseg" \
+      --tag "cosmx_cf_proseg" \
+      --dry-run \
+      --verbose
+
+Run the ProSeg backup:
+
+  restic backup \
+      "/mnt/data/project0062/cosmx_cf_proseg" \
+      --tag "cosmx_cf_proseg" \
+      --verbose
+
+RESTIC_HOST=mars is already set in ~/.restic_env, so --host does not need to be
+included in every command.
+
+
+6. INSPECT AND VERIFY BACKUPS
+-----------------------------
+List all snapshots:
+
+  restic snapshots
+
+List snapshots for one folder/tag:
+
+  restic snapshots --tag "cosmx_cf_orig"
+  restic snapshots --tag "cosmx_cf_proseg"
+
+Check repository structure:
+
+  restic check
+
+Show the approximate physical data stored in the repository:
+
+  restic stats --mode raw-data
+
+Snapshot sizes shown by `restic snapshots` are logical/restorable sizes. They
+do not represent additional S3 usage for every snapshot because Restic
+deduplicates unchanged content.
+
+
+7. DELETE ONE SNAPSHOT SAFELY
+-----------------------------
+First list snapshots and copy the exact snapshot ID:
+
+  restic snapshots
+
+Before deleting a mixed or old snapshot, verify that newer snapshots contain
+every folder that must be retained:
+
+  restic snapshots --tag "cosmx_cf_orig"
+  restic snapshots --tag "cosmx_cf_proseg"
+  restic check
+
+Preview deletion of a specific snapshot:
+
+  restic forget --dry-run SNAPSHOT_ID
+
+If the preview identifies only the intended snapshot, remove its snapshot
+record:
+
+  restic forget SNAPSHOT_ID
+
+Confirm the result:
+
+  restic snapshots
+
+`forget` removes the snapshot reference but does not immediately delete shared
+data. Reclaim data that is no longer used by any snapshot with:
+
+  restic prune
+
+Prune can be expensive and should run as a Slurm job. It is not urgent; leaving
+unreferenced data temporarily is safe.
+
+
+8. HANDLE REPOSITORY LOCKS
+--------------------------
+If Restic reports a lock with a PID, first check whether that process exists:
+
+  ps -p PID_FROM_ERROR -o pid,etime,stat,cmd
+  pgrep -a -u "${USER}" restic
+
+If another Restic backup, check, forget or prune is active, let it finish.
+
+To wait for the lock when running a command:
+
+  restic forget --retry-lock 30m SNAPSHOT_ID
+
+If the reported PID does not exist and no Restic process is active, remove
+stale locks:
+
+  restic unlock
+
+Never run `restic unlock` against a repository that is actively being modified.
+Never bypass locking with `--no-lock` during normal use.
+
+
+9. RESTORE SAFELY
+-----------------
+List snapshots and select an ID:
+
+  restic snapshots
+
+Create a separate staging directory:
+
+  mkdir -p "/mnt/data/project0062/restic_restore_test"
+
+Restore a selected snapshot there:
+
+  restic restore SNAPSHOT_ID \
+      --target "/mnt/data/project0062/restic_restore_test"
+
+Inspect and validate the restored files before manually moving anything into
+an active project directory.
+
+
+10. SLURM BACKUP JOB
+--------------------
+Example restic-backup.sh:
+
+  #!/bin/bash
+  #SBATCH --account=project0062
+  #SBATCH --job-name=ResticBackup
+  #SBATCH --partition=smp
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=1
+  #SBATCH --cpus-per-task=4
+  #SBATCH --mem=16G
+  #SBATCH --time=24:00:00
+  #SBATCH --output=logs/restic-%j.out
+  #SBATCH --error=logs/restic-%j.err
+
+  set -euo pipefail
+
+  source "$(conda info --base)/etc/profile.d/conda.sh"
+  conda activate cli-tools
+  source "${HOME}/.restic_env"
+
+  export RESTIC_CACHE_DIR="/mnt/data/project0062/.restic-cache"
+  mkdir -p "${RESTIC_CACHE_DIR}"
+
+  restic backup \
+      "/mnt/data/project0062/cosmx_cf_orig" \
+      --tag "cosmx_cf_orig" \
+      --verbose
+
+  restic backup \
+      "/mnt/data/project0062/cosmx_cf_proseg" \
+      --tag "cosmx_cf_proseg" \
+      --verbose
+
+  restic check
+
+Before submission:
+
+  mkdir -p logs
+  sbatch restic-backup.sh
+
+Monitor it with:
+
+  squeue -u "${USER}"
+
+
+11. ROUTINE WORKFLOW
+--------------------
+For normal backups:
+
+  1. Submit the Slurm backup job.
+  2. Check the Slurm output and error logs.
+  3. Run `restic snapshots`.
+  4. Run `restic check` regularly.
+  5. Test a restore periodically into a staging directory.
+  6. Apply a retention policy only after deciding how many daily, weekly and
+     monthly snapshots must be retained.
+
+Do not treat an untested backup as fully verified. A successful test restore is
+the strongest confirmation that the backup can be used when needed.
