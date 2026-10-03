@@ -24,7 +24,7 @@ echo "Rustc version: $(rustc --version)"
 # === Run ProSeg ===
 
 
-SLIDE_NAMES=(SLIDE01 SLIDE02 SLIDE03) # SLIDE04 has been done
+SLIDE_NAMES=(SLIDE01 SLIDE02 SLIDE03 SLIDE04) # SLIDE04 has been done
 
 BASE_DIR="/mnt/data/project0062/reseg_test"
 
