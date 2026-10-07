@@ -14,6 +14,9 @@
 
 set -euo pipefail
 
+module load apps/miniforge
+conda activate restic-env
+
 project_dir="/mnt/data/project0062/cosmx_cf_proseg" # absolute path is better
 tag_name="$(basename "$project_dir")"
 host_name="mars"
